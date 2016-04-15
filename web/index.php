@@ -84,11 +84,10 @@ foreach($items as $item){
 
 $final = array_merge($mid, $start);
 
-function formatMilliseconds($milliseconds, $hours = false) {
+function formatMilliseconds($milliseconds) {
     $seconds = floor($milliseconds / 1000);
     $minutes = floor($seconds / 60);
     $hours = floor($minutes / 60);
-    $milliseconds = $milliseconds % 1000;
     $seconds = $seconds % 60;
     $minutes = $minutes % 60;
 

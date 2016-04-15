@@ -7,9 +7,9 @@ require '../../vendor/autoload.php';
 Dotenv::load('../');
 
 $spotifyUser = getenv('SPOTIFY_USER');
-$maxSongs = getenv('MAX_SONGS');
 $maxPlaylists = getenv('MAX_PLAYLISTS');
 $masterPlaylist = getenv('MASTER_PLAYLIST');
+$fillTime = getenv('FILL_TIME');
 
 $session = new SpotifyWebAPI\Session(
     getenv('SPOTIFY_CLIENT_ID'),
@@ -19,7 +19,7 @@ $session = new SpotifyWebAPI\Session(
 $api = new SpotifyWebAPI\SpotifyWebAPI();
 
 if (isset($_GET['code'])) {
-    
+
     $session->requestToken($_GET['code']);
     $api->setAccessToken($session->getAccessToken());
     $refreshToken = $session->getRefreshToken();
@@ -27,11 +27,11 @@ if (isset($_GET['code'])) {
 
 } else {
 
-  /*header('Location: ' . $session->getAuthorizeUrl(array(
-        'scope' => array('playlist-read-private', 'user-read-private')
-    )));
-  exit;
-*/
+    /*header('Location: ' . $session->getAuthorizeUrl(array(
+          'scope' => array('playlist-read-private', 'user-read-private')
+      )));
+    exit;
+  */
     $refreshToken = file_get_contents('refresh.token');
 
     $session->setRefreshToken($refreshToken);
@@ -44,72 +44,84 @@ if (isset($_GET['code'])) {
 
 }
 
-$playlists = $api->getUserPlaylists($spotifyUser, array(
-    'limit' => $maxPlaylists
-));
+$playlists = $api->getUserPlaylists($spotifyUser,
+    array(
+        'limit' => $maxPlaylists
+    ));
 
-$songs = array();
-$finalList = array();
+$fullList = array();
+$fullDuration = 0;
 
 foreach ($playlists->items as $playlist) {
+    $duration = 0;
+    $songs = array();
 
-    if($playlist->id == $masterPlaylist) continue;
-
-    try{
-      $playlistTracks = $api->getUserPlaylistTracks($playlist->owner->id, $playlist->id);
-    } catch(Exception $e){
+    if ($playlist->id == $masterPlaylist) {
         continue;
     }
 
-    if(empty($playlistTracks)) continue;
+    try {
+        $playlistTracks = $api->getUserPlaylistTracks($playlist->owner->id, $playlist->id);
+    } catch (Exception $e) {
+        continue;
+    }
 
-      foreach ($playlistTracks->items as $track) {
+    if (empty($playlistTracks)) {
+        continue;
+    }
+
+    foreach ($playlistTracks->items as $track) {
         $track = $track->track;
 
-        if($track->explicit) continue;
-
-        $songs[] = $track->id;
-      }
-
-      if(empty($songs)) continue;
-
-      if(count($songs) < $maxSongs){
-            $limit = count($songs);
-        } else {
-            $limit = $maxSongs;
+        if ($track->explicit) {
+            continue;
         }
 
-      $keys = array_rand($songs, $limit);      
+        $songs[] = $track;
+        $duration += ($track->duration_ms / 1000);
+    }
 
-      foreach($keys as $key){
-        $items[] = $songs[$key];
-      }
-      
-      $finalList = array_merge($finalList, $items);
-      unset($songs, $playlistTracks);
+    if (empty($songs)) {
+        continue;
+    }
+
+    $fullList[] = [
+        'duration' => $duration,
+        'tracks' => $songs
+    ];
+    $fullDuration += $duration;
+}
+
+$timeRatio = min($fillTime / $fullDuration, 1);
+$finalList = array();
+
+foreach ($fullList as $playlist) {
+    $grabTracks = ceil(count($playlist['tracks']) * $timeRatio);
+    $selected = array_rand($playlist['tracks'], $grabTracks);
+    $finalList = array_merge($finalList, $selected);
 }
 
 $finalList = array_unique($finalList);
 shuffle($finalList);
 
-if(!empty($finalList)){
+if (!empty($finalList)) {
     $api->replacePlaylistTracks($spotifyUser, $masterPlaylist, array($finalList[0]));
     unset($finalList[0]);
 
-    if(!empty($finalList)){
-        foreach($finalList as $key => $value){
-          try{
-            $api->addUserPlaylistTracks($spotifyUser, $masterPlaylist, array($value));
-          } catch(SpotifyWebAPI\SpotifyWebAPIException $e){
-            continue;
-          }
+    if (!empty($finalList)) {
+        foreach ($finalList as $key => $value) {
+            try {
+                $api->addUserPlaylistTracks($spotifyUser, $masterPlaylist, array($value));
+            } catch (SpotifyWebAPI\SpotifyWebAPIException $e) {
+                continue;
+            }
         }
     }
 }
 
 $msg = array(
-  'success'     => true,
-  'tracksAdded' => count($finalList),
+    'success' => true,
+    'tracksAdded' => count($finalList),
 );
 
 print_r(json_encode($msg));

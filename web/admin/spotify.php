@@ -51,6 +51,7 @@ $playlists = $api->getUserPlaylists($spotifyUser,
 
 $fullList = array();
 $fullDuration = 0;
+ini_set('display_errors', 1);
 
 foreach ($playlists->items as $playlist) {
     $duration = 0;
@@ -84,6 +85,7 @@ foreach ($playlists->items as $playlist) {
     if (empty($songs)) {
         continue;
     }
+    shuffle($songs);
 
     $fullList[] = [
         'duration' => $duration,
@@ -98,11 +100,11 @@ foreach ($fullList as $playlist) {
     $avgTrack = $playlist['duration'] / count($playlist['tracks']);
     $listTime = $playlist['duration'] * min(($fillTime / $fullDuration), 1);
     $grabTracks = ceil($listTime / $avgTrack);
-    $selected = array_rand($playlist['tracks'], $grabTracks);
+    $selected = array_slice($playlist['tracks'], 0, $grabTracks);
     $finalList = array_merge($finalList, $selected);
 }
 
-$finalList = array_unique($finalList);
+$finalList = array_unique($finalList, SORT_REGULAR);
 shuffle($finalList);
 
 if (!empty($finalList)) {

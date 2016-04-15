@@ -72,6 +72,9 @@ foreach ($playlists->items as $playlist) {
         if ($track->explicit) {
             continue;
         }
+        if (in_array($track->id, $songs)) {
+            continue;
+        }
         $songs[] = $track->id;
         $duration += ($track->duration_ms / 1000);
     }

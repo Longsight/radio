@@ -56,37 +56,29 @@ ini_set('display_errors', 1);
 foreach ($playlists->items as $playlist) {
     $duration = 0;
     $songs = array();
-
     if ($playlist->id == $masterPlaylist) {
         continue;
     }
-
     try {
         $playlistTracks = $api->getUserPlaylistTracks($playlist->owner->id, $playlist->id);
     } catch (Exception $e) {
         continue;
     }
-
     if (empty($playlistTracks)) {
         continue;
     }
-
     foreach ($playlistTracks->items as $track) {
         $track = $track->track;
-
         if ($track->explicit) {
             continue;
         }
-
         $songs[] = $track->id;
         $duration += ($track->duration_ms / 1000);
     }
-
     if (empty($songs)) {
         continue;
     }
     shuffle($songs);
-
     $fullList[] = [
         'duration' => $duration,
         'tracks' => $songs

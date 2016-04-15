@@ -92,11 +92,12 @@ foreach ($playlists->items as $playlist) {
     $fullDuration += $duration;
 }
 
-$timeRatio = min($fillTime / $fullDuration, 1);
 $finalList = array();
 
 foreach ($fullList as $playlist) {
-    $grabTracks = ceil(count($playlist['tracks']) * $timeRatio);
+    $avgTrack = $playlist['duration'] / count($playlist['tracks']);
+    $listTime = $playlist['duration'] * min(($fillTime / $fullDuration), 1);
+    $grabTracks = ceil($listTime / $avgTrack);
     $selected = array_rand($playlist['tracks'], $grabTracks);
     $finalList = array_merge($finalList, $selected);
 }

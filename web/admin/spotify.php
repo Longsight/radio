@@ -78,7 +78,7 @@ foreach ($playlists->items as $playlist) {
             continue;
         }
 
-        $songs[] = $track;
+        $songs[] = $track->id;
         $duration += ($track->duration_ms / 1000);
     }
 
@@ -104,7 +104,7 @@ foreach ($fullList as $playlist) {
     $finalList = array_merge($finalList, $selected);
 }
 
-$finalList = array_unique($finalList, SORT_REGULAR);
+$finalList = array_unique($finalList);
 shuffle($finalList);
 
 if (!empty($finalList)) {
